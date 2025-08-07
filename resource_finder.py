@@ -66,3 +66,4 @@ def fetch_all_resources(topic: str) -> list:
     videos = find_youtube_videos(topic)
     articles = find_articles(topic)
     return videos + articles
+
