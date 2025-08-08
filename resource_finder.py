@@ -1,4 +1,3 @@
-# resource_finder.py
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
@@ -8,11 +7,11 @@ import sys
 load_dotenv()
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-Search_API_KEY = os.getenv("Search_API_KEY")
+GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
 
 def _check_api_keys():
-    if not all([YOUTUBE_API_KEY, Search_API_KEY, SEARCH_ENGINE_ID]):
+    if not all([YOUTUBE_API_KEY, GOOGLE_SEARCH_API_KEY, SEARCH_ENGINE_ID]):
         print("Error: Missing API keys in .env file or environment. Please check your configuration.", file=sys.stderr)
         return False
     return True
@@ -21,8 +20,7 @@ def find_youtube_videos(topic: str, max_results: int = 3) -> list:
     try:
         youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
         search_query = f"{topic} tutorial explained"
-        
-        request = Youtube().list(
+        request = youtube.search().list(
             q=search_query,
             part='snippet',
             maxResults=max_results,
@@ -40,14 +38,15 @@ def find_youtube_videos(topic: str, max_results: int = 3) -> list:
     except HttpError as e:
         print(f"An HTTP error {e.resp.status} occurred while calling YouTube API.", file=sys.stderr)
         return []
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
+        return []
 
 def find_articles(topic: str, max_results: int = 2) -> list:
     try:
-        service = build("customsearch", "v1", developerKey=Google Search_API_KEY)
+        service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_API_KEY)
         search_query = f"in-depth tutorial {topic}"
-        
         res = service.cse().list(q=search_query, cx=SEARCH_ENGINE_ID, num=max_results).execute()
-        
         articles = []
         for item in res.get('items', []):
             title = item['title']
@@ -56,6 +55,9 @@ def find_articles(topic: str, max_results: int = 2) -> list:
         return articles
     except HttpError as e:
         print(f"An HTTP error {e.resp.status} occurred while calling Google Search API.", file=sys.stderr)
+        return []
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
         return []
 
 def fetch_all_resources(topic: str) -> list:
@@ -67,4 +69,9 @@ def fetch_all_resources(topic: str) -> list:
     articles = find_articles(topic)
     return videos + articles
 
-
+# Example usage for testing
+if __name__ == "__main__":
+    topic = "Python programming"
+    resources = fetch_all_resources(topic)
+    for r in resources:
+        print(r)
