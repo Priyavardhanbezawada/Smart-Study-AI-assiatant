@@ -1,9 +1,11 @@
+# resource_finder.py
 import os
+import sys
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import sys
 
+# Load environment variables from .env file
 load_dotenv()
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -11,12 +13,14 @@ GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
 
 def _check_api_keys():
+    """Check if all required API keys are configured."""
     if not all([YOUTUBE_API_KEY, GOOGLE_SEARCH_API_KEY, SEARCH_ENGINE_ID]):
         print("Error: Missing API keys in .env file or environment. Please check your configuration.", file=sys.stderr)
         return False
     return True
 
 def find_youtube_videos(topic: str, max_results: int = 3) -> list:
+    """Search YouTube for videos about a given topic."""
     try:
         youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
         search_query = f"{topic} tutorial explained"
@@ -28,7 +32,6 @@ def find_youtube_videos(topic: str, max_results: int = 3) -> list:
             relevanceLanguage='en'
         )
         response = request.execute()
-        
         videos = []
         for item in response.get('items', []):
             title = item['snippet']['title']
@@ -43,6 +46,7 @@ def find_youtube_videos(topic: str, max_results: int = 3) -> list:
         return []
 
 def find_articles(topic: str, max_results: int = 2) -> list:
+    """Use Google Custom Search to find articles about a given topic."""
     try:
         service = build("customsearch", "v1", developerKey=GOOGLE_SEARCH_API_KEY)
         search_query = f"in-depth tutorial {topic}"
@@ -61,15 +65,15 @@ def find_articles(topic: str, max_results: int = 2) -> list:
         return []
 
 def fetch_all_resources(topic: str) -> list:
+    """Fetch both YouTube videos and articles about the topic."""
     print(f"\n🔎 Searching resources for: {topic}...")
     if not _check_api_keys():
         return ["Error: API keys are not configured correctly."]
-    
     videos = find_youtube_videos(topic)
     articles = find_articles(topic)
     return videos + articles
 
-# Example usage for testing
+# Optional: test code
 if __name__ == "__main__":
     topic = "Python programming"
     resources = fetch_all_resources(topic)
