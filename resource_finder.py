@@ -8,11 +8,11 @@ import sys
 load_dotenv()
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-Google Search_API_KEY = os.getenv("Google_Search_API_KEY")
+Search_API_KEY = os.getenv("Search_API_KEY")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
 
 def _check_api_keys():
-    if not all([YOUTUBE_API_KEY, Google Search_API_KEY, SEARCH_ENGINE_ID]):
+    if not all([YOUTUBE_API_KEY, Search_API_KEY, SEARCH_ENGINE_ID]):
         print("Error: Missing API keys in .env file or environment. Please check your configuration.", file=sys.stderr)
         return False
     return True
@@ -66,4 +66,5 @@ def fetch_all_resources(topic: str) -> list:
     videos = find_youtube_videos(topic)
     articles = find_articles(topic)
     return videos + articles
+
 
