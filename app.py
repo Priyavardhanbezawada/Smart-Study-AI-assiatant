@@ -3,53 +3,105 @@ import streamlit as st
 from pdf_parser import extract_text
 from topic_extractor import extract_topics
 from resource_finder import fetch_all_resources
+from quiz_generator import generate_quiz
+from assignment_generator import generate_assignment
+from schedule_planner import create_schedule, generate_calendar_file
 import time
 import os
+from datetime import date
 
-st.set_page_config(page_title="Syllabus Genius", page_icon="🚀", layout="centered")
+st.set_page_config(page_title="Syllabus Genius", page_icon="🚀", layout="wide")
 
+# --- Main App Interface ---
 st.title("Syllabus Genius 🚀")
-st.write("Upload your course syllabus PDF and get a curated list of study resources in seconds.")
+st.write("Your all-in-one study assistant. Upload a syllabus to generate resources, quizzes, assignments, and a study plan.")
 
 uploaded_file = st.file_uploader("Choose your syllabus PDF file", type="pdf")
 
 if uploaded_file is not None:
     if st.button("Generate Study Guide"):
-        # Save uploaded file temporarily to pass its path
+        # Process PDF and get topics
         temp_file_path = os.path.join(".", uploaded_file.name)
-        with open(temp_file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        
-        with st.spinner("Reading your syllabus... 📄"):
+        with open(temp_file_path, "wb") as f: f.write(uploaded_file.getbuffer())
+        with st.spinner("Analyzing syllabus..."):
             raw_text = extract_text(temp_file_path)
-        
-        with st.spinner("Identifying topics... 🧠"):
-            time.sleep(1) # Just for effect
             topics = extract_topics(raw_text)
-
-        if not topics:
-            st.error("Could not extract topics. The PDF might be image-based or in an unrecognized format.")
-        else:
-            st.success(f"Found {len(topics)} topics! Now fetching resources...")
-            
-            all_results = []
-            progress_bar = st.progress(0)
-            for i, topic in enumerate(topics):
-                resources = fetch_all_resources(topic)
-                all_results.append((topic, resources))
-                time.sleep(1) # API rate limiting
-                progress_bar.progress((i + 1) / len(topics))
-
-            st.balloons()
-            st.header("✨ Your Personalized Study Guide ✨", divider="rainbow")
-
-            for topic, resources in all_results:
-                with st.expander(f"📚 {topic}"):
-                    if resources:
-                        for resource in resources:
-                            st.markdown(resource)
-                    else:
-                        st.write("No specific resources found for this topic.")
-        
-        # Clean up the temporary file
         os.remove(temp_file_path)
+        
+        if topics:
+            st.session_state.topics = topics
+            st.success(f"Successfully extracted {len(topics)} topics!")
+        else:
+            st.error("Could not extract topics from the PDF.")
+
+# --- Display Topics and Features if they exist in session state ---
+if 'topics' in st.session_state:
+    st.header("✨ Your Personalized Study Materials ✨", divider="rainbow")
+
+    for idx, topic in enumerate(st.session_state.topics):
+        with st.expander(f"📚 {topic}"):
+            # --- Resource Finder ---
+            st.subheader("Recommended Resources")
+            with st.spinner("Finding videos and articles..."):
+                resources = fetch_all_resources(topic)
+            if resources:
+                for resource in resources: st.markdown(resource)
+            else:
+                st.write("No specific resources found for this topic.")
+            
+            st.markdown("---")
+
+            # --- Quiz and Assignment Buttons ---
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🧠 Generate Practice Quiz", key=f"quiz_btn_{idx}"):
+                    with st.spinner("Creating quiz..."):
+                        st.session_state[f'quiz_{idx}'] = generate_quiz(topic)
+            with col2:
+                if st.button("✍️ Generate Assignment", key=f"assign_btn_{idx}"):
+                    with st.spinner("Creating assignment..."):
+                        st.session_state[f'assignment_{idx}'] = generate_assignment(topic)
+
+            # --- Display Quiz ---
+            if f'quiz_{idx}' in st.session_state:
+                st.subheader("Practice Quiz")
+                quiz = st.session_state[f'quiz_{idx}']
+                if "error" in quiz: st.error(quiz["error"])
+                else:
+                    for i, q in enumerate(quiz.get('quiz', [])):
+                        st.write(f"**Question {i+1}:** {q['question']}")
+                        st.radio("Options:", q['options'], key=f"q_{idx}_{i}")
+
+            # --- Display Assignment ---
+            if f'assignment_{idx}' in st.session_state:
+                st.subheader("Assignment Questions")
+                assignment = st.session_state[f'assignment_{idx}']
+                if "error" in assignment: st.error(assignment["error"])
+                else:
+                    for i, q_text in enumerate(assignment.get('assignment_questions', [])):
+                        st.write(f"{i+1}. {q_text}")
+    
+    # --- Exam Schedule Planner ---
+    st.header("📅 Exam Schedule Planner", divider="rainbow")
+    exam_date = st.date_input("Select your exam date:", min_value=date.today())
+    if st.button("Create Study Plan"):
+        schedule = create_schedule(st.session_state.topics, exam_date)
+        if schedule:
+            st.session_state.schedule = schedule
+            st.success("Study plan created!")
+        else:
+            st.error("Could not create schedule. Make sure the exam date is in the future.")
+
+    if 'schedule' in st.session_state:
+        st.subheader("Your Study Plan")
+        for day, daily_topics in st.session_state.schedule.items():
+            st.markdown(f"**{day}**: Study `{', '.join(daily_topics)}`")
+        
+        # Download button for calendar file
+        calendar_data = generate_calendar_file(st.session_state.schedule)
+        st.download_button(
+            label="📅 Download Calendar File (.ics)",
+            data=calendar_data,
+            file_name="study_schedule.ics",
+            mime="text/calendar"
+        )
