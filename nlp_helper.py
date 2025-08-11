@@ -1,47 +1,81 @@
 # nlp_helper.py
 import os
+import re
+import time
 import google.generativeai as genai
 
-# Configure the API key from environment variables
-try:
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=GEMINI_API_KEY)
-except Exception as e:
-    print(f"Error configuring Gemini API for NLP helper: {e}")
+# ======================
+# API Configuration
+# ======================
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise EnvironmentError("❌ GEMINI_API_KEY environment variable is not set.")
 
-def extract_keywords_from_topic(topic_sentence: str) -> str:
+genai.configure(api_key=GEMINI_API_KEY)
+
+
+# ======================
+# Keyword Extraction
+# ======================
+def extract_keywords_from_topic(topic_sentence: str, retries: int = 2, delay: float = 1.5) -> str:
     """
-    Uses the Gemini AI to extract the most important keywords from a long topic sentence.
+    Extracts the 2–4 most important keywords from a syllabus topic sentence
+    using Google Gemini AI.
+    
+    Args:
+        topic_sentence (str): The input sentence from which to extract keywords.
+        retries (int): Number of retry attempts if extraction fails.
+        delay (float): Delay between retries in seconds.
+    
+    Returns:
+        str: Extracted keywords separated by spaces. Falls back to original sentence on failure.
     """
-    if not GEMINI_API_KEY:
-        return topic_sentence # Return the original topic if the key isn't configured
 
-    try:
-        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
+
+    prompt = f"""
+    Extract the core 2–4 keywords from the following syllabus sentence.
+    Only return the keywords separated by spaces — no numbering, punctuation, or extra text.
+    Do not add explanations.
+
+    Sentence: "{topic_sentence}"
+    """
+
+    last_error = None
+
+    for attempt in range(retries + 1):
+        try:
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "text/plain"}  # Force plain text
+            )
+            keywords = response.text.strip()
+
+            # Clean unwanted punctuation/symbols
+            keywords = re.sub(r"[^a-zA-Z0-9\s]", "", keywords)
+
+            # Ensure word count is reasonable
+            words = keywords.split()
+            if 2 <= len(words) <= 6:
+                return keywords.lower()  # Lowercase for search friendliness
+            else:
+                last_error = f"Unexpected keyword count ({len(words)})"
         
-        prompt = f"""
-        Analyze the following sentence from a university syllabus and extract the core 2-4 keywords that would be best for finding tutorial videos on Google and YouTube. Return only the keywords, separated by a space.
+        except Exception as e:
+            last_error = f"Gemini request failed: {e}"
 
-        Sentence: "{topic_sentence}"
-        
-        Example:
-        Sentence: "For many types of software, design and construction are interleaved"
-        Keywords: software design interleaved construction
-        
-        Keywords:
-        """
+        # Retry if needed
+        if attempt < retries:
+            time.sleep(delay)
 
-        response = model.generate_content(prompt)
-        # Clean up the response to get just the keywords
-        keywords = response.text.strip()
-        
-        # If the AI returns something strange, fall back to the original topic
-        if len(keywords) > len(topic_sentence) or len(keywords) == 0:
-            return topic_sentence
+    # Fallback: return original sentence if all attempts fail
+    print(f"⚠️ Keyword extraction failed: {last_error}")
+    return topic_sentence
 
-        return keywords
 
-    except Exception as e:
-        print(f"Keyword extraction failed: {e}")
-        # If AI fails, just use the original topic sentence
-        return topic_sentence
+# ======================
+# CLI for Testing
+# ======================
+if __name__ == "__main__":
+    sentence = input("Enter a syllabus sentence: ").strip()
+    print("Extracted Keywords:", extract_keywords_from_topic(sentence))
