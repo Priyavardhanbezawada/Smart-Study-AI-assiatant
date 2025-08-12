@@ -10,17 +10,20 @@ import os
 import tempfile
 from datetime import date
 
+# --- Streamlit Page Setup ---
 st.set_page_config(page_title="Syllabus Genius", page_icon="🚀", layout="wide")
 st.title("Syllabus Genius 🚀")
 st.write("Your all-in-one study assistant. Upload a syllabus (PDF or Image) to generate resources, quizzes, and more.")
 
+# --- File Processing Function ---
 def process_file(uploaded_file):
+    """Save uploaded file temporarily and extract text based on file type."""
     raw_text = ""
     suffix = uploaded_file.name.split('.')[-1].lower()
+
     with st.spinner("Analyzing your document... This may take a moment."):
         try:
-            # Use tempfile for robustness & cleanup
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.'+suffix) as temp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.' + suffix) as temp_file:
                 temp_file.write(uploaded_file.getbuffer())
                 temp_file_path = temp_file.name
 
@@ -32,12 +35,14 @@ def process_file(uploaded_file):
                 raw_text = extract_text_from_image(image_bytes)
             else:
                 st.error("Unsupported file type.")
-                raw_text = ""
+
         finally:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
+
     return raw_text
 
+# --- File Upload Section ---
 uploaded_file = st.file_uploader("Choose your syllabus file", type=["pdf", "png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
@@ -53,11 +58,13 @@ if uploaded_file is not None:
         else:
             st.error("Could not read any text from the uploaded file. It might be empty or corrupted.")
 
+# --- Display Materials if Topics Extracted ---
 if 'topics' in st.session_state:
     st.header("✨ Your Personalized Study Materials ✨", divider="rainbow")
-
+    
     for idx, topic in enumerate(st.session_state.topics):
         with st.expander(f"📚 {topic}"):
+            # --- Resources ---
             st.subheader("Recommended Resources")
             with st.spinner("Finding videos and articles..."):
                 resources = fetch_all_resources(topic)
@@ -66,8 +73,10 @@ if 'topics' in st.session_state:
                     st.markdown(resource)
             else:
                 st.write("No specific resources found for this topic.")
+
             st.markdown("---")
             
+            # --- Quiz & Assignment buttons ---
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("🧠 Generate Practice Quiz", key=f"quiz_btn_{idx}"):
@@ -78,7 +87,7 @@ if 'topics' in st.session_state:
                     with st.spinner("Creating assignment..."):
                         st.session_state[f'assignment_{idx}'] = generate_assignment(topic)
             
-            # Quiz display
+            # --- Quiz Display ---
             if f'quiz_{idx}' in st.session_state:
                 st.subheader("Practice Quiz")
                 quiz = st.session_state[f'quiz_{idx}']
@@ -89,7 +98,7 @@ if 'topics' in st.session_state:
                         st.write(f"**Question {i+1}:** {q['question']}")
                         st.radio("Options:", q['options'], key=f"q_{idx}_{i}")
 
-            # Assignment display
+            # --- Assignment Display ---
             if f'assignment_{idx}' in st.session_state:
                 st.subheader("Assignment Questions")
                 assignment = st.session_state[f'assignment_{idx}']
@@ -99,8 +108,10 @@ if 'topics' in st.session_state:
                     for i, q_text in enumerate(assignment.get('assignment_questions', [])):
                         st.write(f"{i+1}. {q_text}")
 
+    # --- Exam Schedule Planner ---
     st.header("📅 Exam Schedule Planner", divider="rainbow")
     exam_date = st.date_input("Select your exam date:", min_value=date.today())
+    
     if st.button("Create Study Plan"):
         schedule = create_schedule(st.session_state.topics, exam_date)
         if schedule:
@@ -109,10 +120,12 @@ if 'topics' in st.session_state:
         else:
             st.error("Could not create schedule.")
 
+    # --- Schedule Display & Download ---
     if 'schedule' in st.session_state:
         st.subheader("Your Study Plan")
         for day, daily_topics in st.session_state.schedule.items():
             st.markdown(f"**{day}**: Study `{', '.join(daily_topics)}`")
+        
         calendar_data = generate_calendar_file(st.session_state.schedule)
         st.download_button(
             label="📅 Download Calendar File (.ics)",
