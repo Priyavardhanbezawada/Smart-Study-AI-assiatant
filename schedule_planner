@@ -1,45 +1,40 @@
-# schedule_planner.py
-from datetime import date, timedelta
-from ics import Calendar, Event
+from datetime import timedelta, date
 
-def create_schedule(topics: list, end_date: date):
+def create_schedule(topics, exam_date):
+    """
+    Create a daily study schedule splitting topics evenly until exam_date.
+    Returns a dictionary with date strings as keys and list of topics as values.
+    """
     today = date.today()
-    study_days = (end_date - today).days
+    days_left = (exam_date - today).days
 
-    if study_days < 1 or not topics:
-        return None, None
+    if days_left <= 0:
+        return {}
 
-    # Distribute topics among days
-    topics_per_day = len(topics) // study_days if study_days > 0 else len(topics)
-    if topics_per_day == 0:
-        topics_per_day = 1
-
+    topics_per_day = max(1, len(topics) // days_left)
     schedule = {}
-    topic_index = 0
-    for i in range(study_days + 1):
-        current_date = today + timedelta(days=i)
-        date_str = current_date.strftime("%Y-%m-%d")
-        
-        # Assign topics for the day
-        end_index = topic_index + topics_per_day
-        daily_topics = topics[topic_index:end_index]
-        if daily_topics:
-            schedule[date_str] = daily_topics
-        topic_index = end_index
+    day_counter = 0
 
-        if topic_index >= len(topics):
-            break
-            
+    for i in range(0, len(topics), topics_per_day):
+        day = today + timedelta(days=day_counter)
+        schedule[day.strftime("%Y-%m-%d")] = topics[i:i+topics_per_day]
+        day_counter += 1
+
     return schedule
 
-def generate_calendar_file(schedule: dict):
-    cal = Calendar()
+
+def generate_calendar_file(schedule):
+    """
+    Generate a downloadable .ics calendar file from the schedule.
+    """
+    ics_data = "BEGIN:VCALENDAR\nVERSION:2.0\n"
     for day, topics in schedule.items():
-        event_date = date.fromisoformat(day)
-        event = Event()
-        event.name = f"Study: {topics[0]}"
-        event.description = "Topics to study today:\n- " + "\n- ".join(topics)
-        event.begin = event_date
-        event.make_all_day()
-        cal.events.add(event)
-    return str(cal)
+        ics_data += (
+            "BEGIN:VEVENT\n"
+            f"SUMMARY:Study {', '.join(topics)}\n"
+            f"DTSTART;VALUE=DATE:{day.replace('-', '')}\n"
+            f"DTEND;VALUE=DATE:{day.replace('-', '')}\n"
+            "END:VEVENT\n"
+        )
+    ics_data += "END:VCALENDAR"
+    return ics_data
