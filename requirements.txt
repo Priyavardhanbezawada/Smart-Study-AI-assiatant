@@ -5,3 +5,6 @@ google-auth-httplib2
 python-dotenv
 streamlit
 google-generativeai
+ics
+Pillow
+pytesseract
