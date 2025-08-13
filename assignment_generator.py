@@ -48,7 +48,8 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
                         "content": prompt,
                     }
                 ],
-                model="mixtral-8x7b-32768",
+                # Using a faster model to prevent timeouts
+                model="llama3-8b-8192",
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
