@@ -24,15 +24,7 @@ client = groq.Groq(api_key=GROQ_API_KEY)
 def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: float = 1.5) -> dict:
     """
     Generates a multiple-choice quiz on the given topic using Groq.
-    Args:
-        topic (str): The topic for the quiz.
-        num_questions (int): Number of questions to generate.
-        retries (int): Retry attempts if JSON parsing fails.
-        delay (float): Delay (seconds) between retries.
-    Returns:
-        dict: Quiz data or error message.
     """
-
     prompt = f"""
     You are an expert quiz creator.
     Generate a {num_questions}-question multiple-choice quiz on the topic: "{topic}".
@@ -55,7 +47,6 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
 
     for attempt in range(retries + 1):
         try:
-            # Request JSON response directly from Groq
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
@@ -63,15 +54,14 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
                         "content": prompt,
                     }
                 ],
-                model="llama3-8b-8192",
+                model="mixtral-8x7b-32768",
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
             response_text = chat_completion.choices[0].message.content
-            return json.loads(response_text)  # direct parse if valid
+            return json.loads(response_text)
 
         except json.JSONDecodeError:
-            # Try extracting from messy output
             cleaned_text = _extract_json_from_text(response_text)
             if cleaned_text:
                 try:
