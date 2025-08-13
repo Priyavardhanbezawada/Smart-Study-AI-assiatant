@@ -21,31 +21,29 @@ def _perform_web_search(prompt: str, max_results: int) -> list:
     """
     Asks the Groq model to perform a web search and returns parsed results.
     """
-    full_prompt = f"""
-    You have access to a web search tool.
-    Please perform a web search to find the top {max_results} results for the following query.
-    Return the results as a markdown list with each item in the format: [Title](URL)
+    # CORRECTED: Added a system prompt and more explicit user instructions for reliability.
+    system_prompt = "You are a helpful research assistant. Your task is to use the web search tool to find relevant links and present them clearly in markdown format."
+    user_prompt = f"""
+    Please perform a web search and find the top {max_results} results for the following query.
+    You MUST return the results as a markdown list. Each item in the list MUST be in the format: '- [Title](URL)'.
+    Do not add any other text or explanations before or after the list.
 
     Query: "{prompt}"
     """
     try:
         chat_completion = client.chat.completions.create(
             messages=[
-                {
-                    "role": "user",
-                    "content": full_prompt,
-                }
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
             model="openai/gpt-oss-120b",
-            # Enable the web search tool
             tools=[{"type": "web_search"}],
             temperature=0.2,
         )
         response_text = chat_completion.choices[0].message.content
 
         # Parse the markdown links from the response
-        # Regex to find all occurrences of [Title](URL)
-        matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", response_text)
+        matches = re.findall(r"\[([^\]]+)\]\((https?://[^\)]+)\)", response_text)
         
         results = [{'title': title, 'link': link} for title, link in matches]
         return results[:max_results]
@@ -59,7 +57,6 @@ def find_youtube_videos(query: str, max_results: int = 5):
     Finds YouTube videos using the model's web search tool.
     """
     print(f"✅ Searching for YouTube videos on: '{query}'")
-    # Frame the query to be specific to YouTube
     search_prompt = f"Top {max_results} YouTube videos about '{query}'"
     return _perform_web_search(search_prompt, max_results)
 
@@ -69,7 +66,6 @@ def find_articles(query: str, max_results: int = 5):
     Finds articles and web pages using the model's web search tool.
     """
     print(f"✅ Searching for articles on: '{query}'")
-    # Frame the query for general educational articles
     search_prompt = f"Top {max_results} educational articles or tutorials about '{query}'"
     return _perform_web_search(search_prompt, max_results)
 
