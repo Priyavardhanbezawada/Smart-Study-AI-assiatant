@@ -1,21 +1,21 @@
 # quiz_generator.py
 import os
-import google.generativeai as genai
+import groq
 import json
 import re
 import time
 
 
 # ========================
-# Gemini API Configuration
+# Groq API Configuration
 # ========================
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
     raise EnvironmentError(
-        "❌ Environment variable GEMINI_API_KEY is not set. Please set it before running this script."
+        "❌ Environment variable GROQ_API_KEY is not set. Please set it before running this script."
     )
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = groq.Groq(api_key=GROQ_API_KEY)
 
 
 # ========================
@@ -23,7 +23,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # ========================
 def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: float = 1.5) -> dict:
     """
-    Generates a multiple-choice quiz on the given topic.
+    Generates a multiple-choice quiz on the given topic using Groq.
     Args:
         topic (str): The topic for the quiz.
         num_questions (int): Number of questions to generate.
@@ -32,8 +32,6 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
     Returns:
         dict: Quiz data or error message.
     """
-
-    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
     You are an expert quiz creator.
@@ -57,16 +55,24 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
 
     for attempt in range(retries + 1):
         try:
-            # Request JSON response directly
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
+            # Request JSON response directly from Groq
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="llama3-8b-8192",
+                temperature=0.7,
+                response_format={"type": "json_object"},
             )
-            return json.loads(response.text)  # direct parse if valid
+            response_text = chat_completion.choices[0].message.content
+            return json.loads(response_text)  # direct parse if valid
 
         except json.JSONDecodeError:
             # Try extracting from messy output
-            cleaned_text = _extract_json_from_text(response.text)
+            cleaned_text = _extract_json_from_text(response_text)
             if cleaned_text:
                 try:
                     return json.loads(cleaned_text)
@@ -83,7 +89,7 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
 
     return {
         "error": f"Failed to generate quiz after {retries+1} attempts. {last_error}",
-        "raw_response": response.text if "response" in locals() else None
+        "raw_response": response_text if "response_text" in locals() else None
     }
 
 
