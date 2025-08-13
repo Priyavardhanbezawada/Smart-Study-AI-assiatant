@@ -44,17 +44,19 @@ if 'topics' in st.session_state:
             st.subheader("Recommended Resources")
             with st.spinner("Finding videos and articles..."):
                 resources = find_all_resources(topic)
-            if resources:
-                if resources['videos']:
+            
+            # CORRECTED: This logic now handles cases where no resources are found.
+            if not resources.get('videos') and not resources.get('articles'):
+                st.write("No specific resources were found for this topic.")
+            else:
+                if resources.get('videos'):
                     st.write("🎥 **YouTube Videos:**")
                     for video in resources['videos']:
                         st.markdown(f"- [{video['title']}]({video['link']})")
-                if resources['articles']:
+                if resources.get('articles'):
                     st.write("📰 **Articles:**")
                     for article in resources['articles']:
                         st.markdown(f"- [{article['title']}]({article['link']})")
-            else:
-                st.write("No specific resources found for this topic.")
 
             st.markdown("---")
 
