@@ -17,5 +17,4 @@ def extract_text_from_image(image_bytes):
         return text
     except Exception as e:
         print(f"Error during OCR processing: {e}")
-
         return ""
