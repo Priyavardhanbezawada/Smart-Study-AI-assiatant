@@ -2,16 +2,16 @@
 import os
 import re
 import time
-import google.generativeai as genai
+import groq
 
 # ======================
 # API Configuration
 # ======================
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise EnvironmentError("❌ GEMINI_API_KEY environment variable is not set.")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise EnvironmentError("❌ GROQ_API_KEY environment variable is not set.")
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = groq.Groq(api_key=GROQ_API_KEY)
 
 
 # ======================
@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 def extract_keywords_from_topic(topic_sentence: str, retries: int = 2, delay: float = 1.5) -> str:
     """
     Extracts the 2–4 most important keywords from a syllabus topic sentence
-    using Google Gemini AI.
+    using Groq.
     
     Args:
         topic_sentence (str): The input sentence from which to extract keywords.
@@ -30,8 +30,6 @@ def extract_keywords_from_topic(topic_sentence: str, retries: int = 2, delay: fl
     Returns:
         str: Extracted keywords separated by spaces. Falls back to original sentence on failure.
     """
-
-    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
     Extract the core 2–4 keywords from the following syllabus sentence.
@@ -45,11 +43,17 @@ def extract_keywords_from_topic(topic_sentence: str, retries: int = 2, delay: fl
 
     for attempt in range(retries + 1):
         try:
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "text/plain"}  # Force plain text
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="llama3-8b-8192",
+                temperature=0.2,
             )
-            keywords = response.text.strip()
+            keywords = chat_completion.choices[0].message.content.strip()
 
             # Clean unwanted punctuation/symbols
             keywords = re.sub(r"[^a-zA-Z0-9\s]", "", keywords)
@@ -62,7 +66,7 @@ def extract_keywords_from_topic(topic_sentence: str, retries: int = 2, delay: fl
                 last_error = f"Unexpected keyword count ({len(words)})"
         
         except Exception as e:
-            last_error = f"Gemini request failed: {e}"
+            last_error = f"Groq request failed: {e}"
 
         # Retry if needed
         if attempt < retries:
