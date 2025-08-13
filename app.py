@@ -2,7 +2,7 @@
 import streamlit as st
 from pdf_parser import extract_text
 from topic_extractor import extract_topics
-from resource_finder import fetch_all_resources
+from resource_finder import find_all_resources
 from quiz_generator import generate_quiz
 from assignment_generator import generate_assignment
 from schedule_planner import create_schedule, generate_calendar_file
@@ -43,9 +43,16 @@ if 'topics' in st.session_state:
             # --- Resource Finder ---
             st.subheader("Recommended Resources")
             with st.spinner("Finding videos and articles..."):
-                resources = fetch_all_resources(topic)
+                resources = find_all_resources(topic)
             if resources:
-                for resource in resources: st.markdown(resource)
+                if resources['videos']:
+                    st.write("🎥 **YouTube Videos:**")
+                    for video in resources['videos']:
+                        st.markdown(f"- [{video['title']}]({video['link']})")
+                if resources['articles']:
+                    st.write("📰 **Articles:**")
+                    for article in resources['articles']:
+                        st.markdown(f"- [{article['title']}]({article['link']})")
             else:
                 st.write("No specific resources found for this topic.")
 
@@ -68,7 +75,7 @@ if 'topics' in st.session_state:
                 quiz = st.session_state[f'quiz_{idx}']
                 if "error" in quiz: st.error(quiz["error"])
                 else:
-                    for i, q in enumerate(quiz.get('quiz', [])):
+                    for i, q in enumerate(quiz.get('questions', [])):
                         st.write(f"**Question {i+1}:** {q['question']}")
                         st.radio("Options:", q['options'], key=f"q_{idx}_{i}")
 
