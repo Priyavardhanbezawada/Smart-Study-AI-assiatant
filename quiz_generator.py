@@ -54,7 +54,7 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
                         "content": prompt,
                     }
                 ],
-                model="mixtral-8x7b-32768",
+                model="openai/gpt-oss-120b",
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
