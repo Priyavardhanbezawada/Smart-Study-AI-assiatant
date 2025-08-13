@@ -54,7 +54,8 @@ def generate_quiz(topic: str, num_questions: int = 3, retries: int = 2, delay: f
                         "content": prompt,
                     }
                 ],
-                model="openai/gpt-oss-120b",
+                # Using a faster model to prevent timeouts
+                model="llama3-8b-8192",
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
