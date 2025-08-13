@@ -21,17 +21,7 @@ client = groq.Groq(api_key=GROQ_API_KEY)
 def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, delay: float = 1.5) -> dict:
     """
     Generates short-answer assignment questions for the given topic using Groq.
-    
-    Args:
-        topic (str): The assignment topic.
-        num_questions (int): Number of questions to generate.
-        retries (int): Retry attempts if JSON parsing fails.
-        delay (float): Delay in seconds between retries.
-    
-    Returns:
-        dict: {"assignment_questions": [...]} or {"error": "..."}
     """
-
     prompt = f"""
     You are a university professor.
     Generate {num_questions} short-answer assignment questions for the topic: "{topic}".
@@ -51,7 +41,6 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
 
     for attempt in range(retries + 1):
         try:
-            # Ask Groq for JSON
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
@@ -59,17 +48,14 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
                         "content": prompt,
                     }
                 ],
-                model="llama3-8b-8192",
+                model="mixtral-8x7b-32768",
                 temperature=0.7,
                 response_format={"type": "json_object"},
             )
             response_text = chat_completion.choices[0].message.content
-
-            # Try direct JSON parse
             return json.loads(response_text)
 
         except json.JSONDecodeError:
-            # Try to extract JSON if mixed with text
             cleaned_text = _extract_json_from_text(response_text)
             if cleaned_text:
                 try:
@@ -78,11 +64,9 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
                     last_error = f"JSON parse error after cleaning: {je}"
             else:
                 last_error = "Could not find JSON in Groq response."
-
         except Exception as e:
             last_error = f"Groq API request failed: {e}"
 
-        # Retry if needed
         if attempt < retries:
             time.sleep(delay)
 
@@ -108,6 +92,5 @@ if __name__ == "__main__":
     topic_input = input("Enter assignment topic: ").strip()
     num_qs_input = input("Number of questions (default 3): ").strip()
     num_qs = int(num_qs_input) if num_qs_input.isdigit() else 3
-
     assignment_data = generate_assignment(topic_input, num_questions=num_qs)
     print(json.dumps(assignment_data, indent=2, ensure_ascii=False))
