@@ -15,7 +15,6 @@ def find_youtube_videos(query: str, max_results: int = 5):
     try:
         # Use DDGS to find videos specifically from YouTube
         with DDGS() as ddgs:
-            # The 'safesearch' and 'resolution' parameters are optional but good practice
             results = list(ddgs.videos(
                 f"{query} site:youtube.com",
                 safesearch='on',
