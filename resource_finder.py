@@ -1,63 +1,78 @@
 # resource_finder.py
 import os
+import re
+import groq
 from dotenv import load_dotenv
-from duckduckgo_search import DDGS
 
 # Load environment variables from the .env file
 load_dotenv()
 
+# =======================
+# API Config
+# =======================
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise EnvironmentError("❌ GROQ_API_KEY is not set. Please set it before running.")
+
+client = groq.Groq(api_key=GROQ_API_KEY)
+
+
+def _perform_web_search(prompt: str, max_results: int) -> list:
+    """
+    Asks the Groq model to perform a web search and returns parsed results.
+    """
+    full_prompt = f"""
+    You have access to a web search tool.
+    Please perform a web search to find the top {max_results} results for the following query.
+    Return the results as a markdown list with each item in the format: [Title](URL)
+
+    Query: "{prompt}"
+    """
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": full_prompt,
+                }
+            ],
+            model="openai/gpt-oss-120b",
+            # Enable the web search tool
+            tools=[{"type": "web_search"}],
+            temperature=0.2,
+        )
+        response_text = chat_completion.choices[0].message.content
+
+        # Parse the markdown links from the response
+        # Regex to find all occurrences of [Title](URL)
+        matches = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", response_text)
+        
+        results = [{'title': title, 'link': link} for title, link in matches]
+        return results[:max_results]
+
+    except Exception as e:
+        print(f"🔴 An error occurred during web search: {e}")
+        return []
+
 def find_youtube_videos(query: str, max_results: int = 5):
     """
-    Finds YouTube videos for a given query using DuckDuckGo Search.
-    No API key needed.
+    Finds YouTube videos using the model's web search tool.
     """
-    videos = []
-    try:
-        # Use DDGS to find videos specifically from YouTube
-        with DDGS() as ddgs:
-            results = list(ddgs.videos(
-                f"{query} site:youtube.com",
-                safesearch='on',
-                resolution='high',
-                max_results=max_results
-            ))
+    print(f"✅ Searching for YouTube videos on: '{query}'")
+    # Frame the query to be specific to YouTube
+    search_prompt = f"Top {max_results} YouTube videos about '{query}'"
+    return _perform_web_search(search_prompt, max_results)
 
-        for item in results:
-            videos.append({
-                'title': item.get('title'),
-                'link': item.get('content') # The video URL is in the 'content' field
-            })
-
-        print(f"✅ Found {len(videos)} YouTube videos for '{query}'.")
-        return videos
-        
-    except Exception as e:
-        print(f"🔴 An unexpected error occurred in find_youtube_videos: {e}")
-    
-    return []
 
 def find_articles(query: str, max_results: int = 5):
     """
-    Finds articles and web pages using DuckDuckGo search. No API key needed.
+    Finds articles and web pages using the model's web search tool.
     """
-    articles = []
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-        
-        for item in results:
-            articles.append({
-                'title': item.get('title'),
-                'link': item.get('href'),
-                'snippet': item.get('body')
-            })
+    print(f"✅ Searching for articles on: '{query}'")
+    # Frame the query for general educational articles
+    search_prompt = f"Top {max_results} educational articles or tutorials about '{query}'"
+    return _perform_web_search(search_prompt, max_results)
 
-        print(f"✅ Found {len(articles)} articles for '{query}'.")
-        return articles
-    except Exception as e:
-        print(f"🔴 An unexpected error occurred in find_articles: {e}")
-    
-    return []
 
 def find_all_resources(topic: str):
     """
