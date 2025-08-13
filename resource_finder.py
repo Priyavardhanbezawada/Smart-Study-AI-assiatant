@@ -1,3 +1,4 @@
+# resource_finder.py
 import os
 import requests
 from dotenv import load_dotenv
@@ -8,7 +9,7 @@ load_dotenv()
 # --- API Keys and IDs from Environment Variables ---
 # Securely load your keys. These MUST be in your .env file.
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-Google Search_API_KEY = os.getenv("Google Search_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID") # Important: You need this for the article search
 
 def find_youtube_videos(query: str, max_results: int = 5):
@@ -59,15 +60,15 @@ def find_articles(query: str, max_results: int = 5):
     """
     Finds articles and web pages for a given query using the Google Custom Search JSON API.
     """
-    if not Google Search_API_KEY or not SEARCH_ENGINE_ID:
-        print("🔴 ERROR: Google Search_API_KEY or SEARCH_ENGINE_ID is not set.")
+    if not GOOGLE_API_KEY or not SEARCH_ENGINE_ID:
+        print("🔴 ERROR: GOOGLE_API_KEY or SEARCH_ENGINE_ID is not set.")
         return []
 
     # API endpoint and parameters
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
         'q': query,
-        'key': Google Search_API_KEY,
+        'key': GOOGLE_API_KEY,
         'cx': SEARCH_ENGINE_ID,
         'num': max_results
     }
