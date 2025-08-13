@@ -1,6 +1,6 @@
 # assignment_generator.py
 import os
-import google.generativeai as genai
+import groq
 import json
 import re
 import time
@@ -8,11 +8,11 @@ import time
 # =======================
 # API Config
 # =======================
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise EnvironmentError("❌ GEMINI_API_KEY is not set. Please set it before running.")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise EnvironmentError("❌ GROQ_API_KEY is not set. Please set it before running.")
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = groq.Groq(api_key=GROQ_API_KEY)
 
 
 # =======================
@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # =======================
 def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, delay: float = 1.5) -> dict:
     """
-    Generates short-answer assignment questions for the given topic.
+    Generates short-answer assignment questions for the given topic using Groq.
     
     Args:
         topic (str): The assignment topic.
@@ -31,8 +31,6 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
     Returns:
         dict: {"assignment_questions": [...]} or {"error": "..."}
     """
-
-    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
     You are a university professor.
@@ -53,28 +51,36 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
 
     for attempt in range(retries + 1):
         try:
-            # Ask Gemini for JSON
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
+            # Ask Groq for JSON
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="llama3-8b-8192",
+                temperature=0.7,
+                response_format={"type": "json_object"},
             )
+            response_text = chat_completion.choices[0].message.content
 
             # Try direct JSON parse
-            return json.loads(response.text)
+            return json.loads(response_text)
 
         except json.JSONDecodeError:
             # Try to extract JSON if mixed with text
-            cleaned_text = _extract_json_from_text(response.text)
+            cleaned_text = _extract_json_from_text(response_text)
             if cleaned_text:
                 try:
                     return json.loads(cleaned_text)
                 except json.JSONDecodeError as je:
                     last_error = f"JSON parse error after cleaning: {je}"
             else:
-                last_error = "Could not find JSON in Gemini response."
+                last_error = "Could not find JSON in Groq response."
 
         except Exception as e:
-            last_error = f"Gemini API request failed: {e}"
+            last_error = f"Groq API request failed: {e}"
 
         # Retry if needed
         if attempt < retries:
@@ -82,7 +88,7 @@ def generate_assignment(topic: str, num_questions: int = 3, retries: int = 2, de
 
     return {
         "error": f"Failed to generate assignment after {retries+1} attempts. {last_error}",
-        "raw_response": response.text if "response" in locals() else None
+        "raw_response": response_text if "response_text" in locals() else None
     }
 
 
