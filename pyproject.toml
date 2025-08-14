@@ -4,8 +4,6 @@ version = "0.2.0"
 description = "A tool to generate learning resources from a syllabus PDF."
 requires-python = ">=3.9"
 
-# This is where your library "shopping list" goes.
-# We will fill this in the next step.
 dependencies = [
     "streamlit",
     "PyMuPDF",
