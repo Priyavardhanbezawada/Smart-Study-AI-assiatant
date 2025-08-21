@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Update package lists and install Tesseract OCR and other dependencies
+# Update package lists and install Tesseract OCR plus build tools
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     build-essential \
@@ -16,11 +16,11 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container at /app
+# Copy the rest of the app code into the container
 COPY . .
 
-# Make port 8501 available to the world outside this container (for Streamlit)
+# Expose the Streamlit port
 EXPOSE 8501
 
-# Define the command to run your app
+# Command to run your app with Streamlit
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.enableCORS=false"]
