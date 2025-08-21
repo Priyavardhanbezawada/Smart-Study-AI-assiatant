@@ -3,7 +3,9 @@ import fitz  # PyMuPDF
 import sys
 
 def extract_text(pdf_path: str) -> str:
-    """Extracts raw text content from a PDF file."""
+    """
+    Extracts raw text content from a PDF file.
+    """
     try:
         doc = fitz.open(pdf_path)
         text = ""
