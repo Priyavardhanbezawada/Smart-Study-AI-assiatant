@@ -1,18 +1,26 @@
-# For image processing and OCR
-Pillow
-pytesseract
+import streamlit as st
+import PyPDF2
 
-# For handling PDFs
-pdfplumber
+st.title("PDF Text Extractor")
 
-# For AI/generation features
-openai
+uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
-# For the web application interface
-streamlit
-
-# Web server for deployment (Render needs this for Flask/FastAPI)
-gunicorn
-
-# For managing environment variables
-python-dotenv
+if uploaded_file is not None:
+    try:
+        # Read and process the PDF
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        all_text = ""
+        for i, page in enumerate(pdf_reader.pages):
+            page_text = page.extract_text()
+            if page_text:
+                all_text += f"\n\n--- Page {i+1} ---\n\n"
+                all_text += page_text
+        if all_text:
+            st.subheader("Extracted Text:")
+            st.write(all_text)
+        else:
+            st.warning("No extractable text found in this PDF (it may be scanned or image-only).")
+    except Exception as e:
+        st.error(f"An error occurred while processing the PDF: {e}")
+else:
+    st.info("Please upload a PDF file to extract text.")
