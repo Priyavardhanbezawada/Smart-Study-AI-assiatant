@@ -2,6 +2,7 @@ services:
   - type: web
     name: smart-study-ai-assistant
     plan: free # Or your desired plan
+
     # The Dockerfile is now the single source of truth.
     # It handles the environment, installs packages, and starts the app.
     runtime: docker
