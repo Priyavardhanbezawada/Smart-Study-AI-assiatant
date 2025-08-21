@@ -1,29 +1,39 @@
 # quiz_generator.py
 import os
-import google.generativeai as genai
+import openai  # Groq's API is OpenAI-compatible
 import json
 import re
 
-try:
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=GEMINI_API_KEY)
-except Exception as e:
-    print(f"Error configuring Gemini API: {e}")
+# Configure Groq API
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")  # Default Groq API endpoint
+
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY environment variable not set.")
+
+openai.api_key = GROQ_API_KEY
+openai.api_base = GROQ_API_BASE
 
 def generate_quiz(topic: str):
-    if not GEMINI_API_KEY:
-        return {"error": "Gemini API key is not configured."}
-
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash")
     prompt = f"""
-    You are an expert quiz creator. Generate a 3-question multiple-choice quiz on the topic: "{topic}".
-    The output must be a valid JSON object. Do not include any text before or after the JSON.
-    Each question should have a "question" field, an "options" field (an array of 4 strings), and an "answer" field (the correct option string).
-    """
-
+You are an expert quiz creator. Generate a 3-question multiple-choice quiz on the topic: "{topic}".
+The output must be a valid JSON object. Do not include any text before or after the JSON.
+Each question should have a "question" field, an "options" field (an array of 4 strings), and an "answer" field (the correct option string).
+"""
     try:
-        response = model.generate_content(prompt)
-        json_text = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
+        response = openai.ChatCompletion.create(
+            model="llama3-8b-8192",  # Or another recommended Groq model
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=700,
+            temperature=0.7
+        )
+        # Get model's answer
+        content = response["choices"][0]["message"]["content"]
+
+        # Extract the JSON block only
+        json_text = re.search(r'\{.*\}', content, re.DOTALL).group(0)
         return json.loads(json_text)
     except Exception as e:
         return {"error": f"Failed to generate quiz: {e}"}
