@@ -1,19 +1,15 @@
-import streamlit as st
-import pdfplumber
+import fitz  # PyMuPDF library
 
-def extract_text(pdf_file):
-    text = ""
-    with pdfplumber.open(pdf_file) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-    return text
-
-st.title("PDF Text Extractor")
-
-uploaded_file = st.file_uploader("Upload your PDF", type="pdf")
-if uploaded_file is not None:
-    text = extract_text(uploaded_file)
-    st.subheader("Extracted Text")
-    st.write(text if text else "No text found in the PDF.")
+def extract_text(pdf_stream):
+    """
+    Opens a PDF from a byte stream and returns all its text content.
+    A byte stream is what Flask provides when a user uploads a file.
+    """
+    try:
+        doc = fitz.open(stream=pdf_stream, filetype="pdf")
+        full_text = "".join(page.get_text() for page in doc)
+        return full_text
+    except Exception as e:
+        print(f"Error processing PDF: {e}")
+        # Return empty string on failure
+        return ""
