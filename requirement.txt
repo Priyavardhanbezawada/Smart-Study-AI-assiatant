@@ -1,0 +1,18 @@
+# For image processing and OCR
+Pillow
+pytesseract
+
+# For handling PDFs
+pdfplumber
+
+# For AI/generation features
+openai
+
+# For the web application interface
+streamlit
+
+# Web server for deployment (Render needs this for Flask/FastAPI)
+gunicorn
+
+# For managing environment variables
+python-dotenv
