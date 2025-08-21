@@ -1,18 +1,8 @@
 services:
   - type: web
     name: smart-study-ai-assistant
-    env: python
-    plan: free # or your desired plan
-    buildCommand: |
-      pip install -r requirements.txt
-    startCommand: streamlit run app.py # Important: Change this if needed!
-    healthCheckPath: /healthz
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.4
-    buildFilters:
-      - '**.py'
-      - 'requirements.txt'
-    # This is the magic part that installs Tesseract-OCR system-wide
+    plan: free # Or your desired plan
+    # The Dockerfile is now the single source of truth.
+    # It handles the environment, installs packages, and starts the app.
     runtime: docker
     dockerfilePath: ./Dockerfile
