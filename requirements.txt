@@ -1,25 +1,6 @@
-import PyPDF2
-
-st.title("PDF Text Extractor")
-
-uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
-
-if uploaded_file is not None:
-    try:
-        # Read and process the PDF
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-        all_text = ""
-        for i, page in enumerate(pdf_reader.pages):
-            page_text = page.extract_text()
-            if page_text:
-                all_text += f"\n\n--- Page {i+1} ---\n\n"
-                all_text += page_text
-        if all_text:
-            st.subheader("Extracted Text:")
-            st.write(all_text)
-        else:
-            st.warning("No extractable text found in this PDF (it may be scanned or image-only).")
-    except Exception as e:
-        st.error(f"An error occurred while processing the PDF: {e}")
-else:
-    st.info("Please upload a PDF file to extract text.")
+Flask
+gunicorn
+PyMuPDF
+spacy
+google-api-python-client
+streamlit
