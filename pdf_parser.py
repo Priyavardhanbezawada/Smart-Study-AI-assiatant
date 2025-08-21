@@ -1,14 +1,19 @@
 import streamlit as st
-import PyPDF2
+import pdfplumber
+
+def extract_text(pdf_file):
+    text = ""
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+    return text
 
 st.title("PDF Text Extractor")
 
-uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
+uploaded_file = st.file_uploader("Upload your PDF", type="pdf")
 if uploaded_file is not None:
-    # Open the PDF file
-    pdf_reader = PyPDF2.PdfReader(uploaded_file)
-    text = ""
-    for page in pdf_reader.pages:
-        text += page.extract_text()
-    st.subheader("Extracted Text:")
-    st.write(text)
+    text = extract_text(uploaded_file)
+    st.subheader("Extracted Text")
+    st.write(text if text else "No text found in the PDF.")
