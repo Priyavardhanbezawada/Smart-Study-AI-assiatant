@@ -27,4 +27,5 @@ def generate_assignment(topic: str):
         json_text = re.search(r'\{.*\}', response.text, re.DOTALL).group(0)
         return json.loads(json_text)
     except Exception as e:
+
         return {"error": f"Failed to generate assignment: {e}"}
