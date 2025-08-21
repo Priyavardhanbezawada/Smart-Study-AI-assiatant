@@ -5,7 +5,6 @@ from ics import Calendar, Event
 def create_schedule(topics: list, end_date: date):
     today = date.today()
     study_days = (end_date - today).days
-
     if study_days < 1 or not topics:
         return None, None
 
@@ -19,17 +18,16 @@ def create_schedule(topics: list, end_date: date):
     for i in range(study_days + 1):
         current_date = today + timedelta(days=i)
         date_str = current_date.strftime("%Y-%m-%d")
-        
+
         # Assign topics for the day
         end_index = topic_index + topics_per_day
         daily_topics = topics[topic_index:end_index]
         if daily_topics:
             schedule[date_str] = daily_topics
-        topic_index = end_index
-
+            topic_index = end_index
         if topic_index >= len(topics):
             break
-            
+
     return schedule
 
 def generate_calendar_file(schedule: dict):
