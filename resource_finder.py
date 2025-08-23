@@ -1,4 +1,3 @@
-# resource_finder.py
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
@@ -6,7 +5,6 @@ from googleapiclient.errors import HttpError
 import sys
 
 load_dotenv()
-
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 SEARCH_ENGINE_ID = os.getenv("SEARCH_ENGINE_ID")
