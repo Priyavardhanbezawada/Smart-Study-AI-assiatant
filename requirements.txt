@@ -4,3 +4,6 @@ PyMuPDF
 spacy
 google-api-python-client
 streamlit
+pandas
+numpy
+
