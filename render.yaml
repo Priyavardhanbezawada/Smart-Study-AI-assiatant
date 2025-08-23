@@ -1,9 +1,11 @@
 services:
   - type: web
     name: smart-study-ai-assistant
-    plan: free # Or your desired plan
-
-    # The Dockerfile is now the single source of truth.
-    # It handles the environment, installs packages, and starts the app.
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false  # Or set your actual value here or in the Render dashboard
+      - key: PYTHON_VERSION
+        value: 3.11
