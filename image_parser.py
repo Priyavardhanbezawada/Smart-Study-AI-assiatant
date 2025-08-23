@@ -1,4 +1,3 @@
-# image_parser.py
 import pytesseract
 from PIL import Image
 import io
