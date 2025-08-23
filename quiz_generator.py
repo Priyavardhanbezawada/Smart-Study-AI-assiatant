@@ -1,10 +1,8 @@
-# quiz_generator.py
 import os
 import openai  # Groq's API is OpenAI-compatible
 import json
 import re
 
-# Configure Groq API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")  # Default Groq API endpoint
 
@@ -23,17 +21,12 @@ Each question should have a "question" field, an "options" field (an array of 4 
     try:
         response = openai.ChatCompletion.create(
             model="llama3-8b-8192",  # Or another recommended Groq model
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=700,
             temperature=0.7
         )
-        # Get model's answer
-        content = response["choices"][0]["message"]["content"]
-
-        # Extract the JSON block only
-        json_text = re.search(r'\{.*\}', content, re.DOTALL).group(0)
+        content = response["choices"]["message"]["content"]
+        json_text = re.search(r'{.*}', content, re.DOTALL).group(0)
         return json.loads(json_text)
     except Exception as e:
         return {"error": f"Failed to generate quiz: {e}"}
